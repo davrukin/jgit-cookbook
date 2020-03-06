@@ -2,7 +2,7 @@ jgit-cookbook
 =============
 [![Build Status](https://travis-ci.org/centic9/jgit-cookbook.svg)](https://travis-ci.org/centic9/jgit-cookbook) [![Gradle Status](https://gradleupdate.appspot.com/centic9/jgit-cookbook/status.svg?branch=master)](https://gradleupdate.appspot.com/centic9/jgit-cookbook/status)
 
-_**This fork converts the library to Kotlin and turns it into a library**_
+_**This fork converts the library to Kotlin and turns it into an API**_
 
 Provides examples and code snippets for the [JGit](https://eclipse.org/jgit/) Java Git implementation. 
 
