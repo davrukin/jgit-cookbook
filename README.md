@@ -2,6 +2,8 @@ jgit-cookbook
 =============
 [![Build Status](https://travis-ci.org/centic9/jgit-cookbook.svg)](https://travis-ci.org/centic9/jgit-cookbook) [![Gradle Status](https://gradleupdate.appspot.com/centic9/jgit-cookbook/status.svg?branch=master)](https://gradleupdate.appspot.com/centic9/jgit-cookbook/status)
 
+_**This fork converts the library to Kotlin and turns it into a library**_
+
 Provides examples and code snippets for the [JGit](https://eclipse.org/jgit/) Java Git implementation. 
 
 The JGit framework is rich and diverse, it has two layers, a low-level _api_ and a higher-level set of _porcelain_ commands. This can be a bit intimidating at first as there are lots of classes, some of which are not relevant for most tasks.
