@@ -1,4 +1,16 @@
-package org.dstadler.jgit.unfinished;
+package org.dstadler.jgit.unfinished
+
+import org.apache.commons.io.FileUtils
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.GitCommand
+import org.eclipse.jgit.api.errors.GitAPIException
+import org.eclipse.jgit.api.errors.JGitInternalException
+import org.eclipse.jgit.errors.NoWorkTreeException
+import org.eclipse.jgit.lib.Repository
+import java.io.File
+import java.io.IOException
+import java.util.*
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,86 +26,55 @@ package org.dstadler.jgit.unfinished;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Date;
-import java.util.Set;
-
-import org.apache.commons.io.FileUtils;
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.GitCommand;
-import org.eclipse.jgit.api.Status;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.JGitInternalException;
-import org.eclipse.jgit.dircache.DirCache;
-import org.eclipse.jgit.dircache.DirCacheEntry;
-import org.eclipse.jgit.errors.NoWorkTreeException;
-import org.eclipse.jgit.lib.Repository;
-
-/**
+ */ /**
  * Note: This snippet is not done and likely does not show anything useful yet
  *
  * Snippet which shows how to mark files as assumed-unchanged (git update-index --assume-unchanged)
  */
-public class UpdateIndex {
+object UpdateIndex {
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repo ->
+			Git(repo).use { git ->
+				val testFile = "README.md"
 
-	public static void main(String[] args) throws IOException, GitAPIException {
-		try (final Repository repo = CookbookHelper.openJGitCookbookRepository()) {
-    		try (final Git git = new Git(repo)) {
-    		    final String testFile = "README.md";
-
-    			// Modify the file
-    			FileUtils.write(new File(testFile), new Date().toString(), "UTF-8");
-    			System.out.println("Modified files: " + getModifiedFiles(git));
-
-    			new AssumeChangedCommand(repo, testFile, true).call();
-    			System.out.println("Modified files after assume-changed: " + getModifiedFiles(git));
-
-    			new AssumeChangedCommand(repo, testFile, false).call();
-    			System.out.println("Modified files after no-assume-changed: " + getModifiedFiles(git));
-
-    			git.checkout().addPath(testFile).call();
-    			System.out.println("Modified files after reset: " + getModifiedFiles(git));
-    		}
-		}
-	}
-
-	private static Set<String> getModifiedFiles(Git git) throws NoWorkTreeException, GitAPIException {
-		Status status = git.status().call();
-		return status.getModified();
-	}
-
-	private static class AssumeChangedCommand extends GitCommand<String> {
-		private final String fileName;
-		private final boolean assumeUnchanged;
-
-		AssumeChangedCommand(Repository repository, String fileName, boolean assumedUnchanged) {
-			super(repository);
-
-			this.fileName = fileName;
-			this.assumeUnchanged = assumedUnchanged;
-		}
-
-		@Override
-		public String call() throws GitAPIException {
-			try {
-				DirCache index = repo.lockDirCache();
-				DirCacheEntry entry = index.getEntry(fileName);
-
-				if (entry != null) {
-					entry.setAssumeValid(assumeUnchanged);
-					index.write();
-					index.commit();
-					return entry.getPathString();
-				}
-			} catch (IOException e) {
-				throw new JGitInternalException(e.getMessage(), e);
+				// Modify the file
+				FileUtils.write(File(testFile), Date().toString(), "UTF-8")
+				println("Modified files: " + getModifiedFiles(git))
+				AssumeChangedCommand(repo, testFile, true).call()
+				println("Modified files after assume-changed: " + getModifiedFiles(git))
+				AssumeChangedCommand(repo, testFile, false).call()
+				println("Modified files after no-assume-changed: " + getModifiedFiles(git))
+				git.checkout().addPath(testFile).call()
+				println("Modified files after reset: " + getModifiedFiles(git))
 			}
-
-			return null;
 		}
+	}
+
+	@Throws(NoWorkTreeException::class, GitAPIException::class)
+	private fun getModifiedFiles(git: Git): Set<String> {
+		val status = git.status().call()
+		return status.modified
+	}
+
+	private class AssumeChangedCommand internal constructor(repository: Repository?, private val fileName: String, private val assumeUnchanged: Boolean) : GitCommand<String?>(repository) {
+		@Throws(GitAPIException::class)
+		override fun call(): String? {
+			try {
+				val index = repo.lockDirCache()
+				val entry = index.getEntry(fileName)
+				if (entry != null) {
+					entry.isAssumeValid = assumeUnchanged
+					index.write()
+					index.commit()
+					return entry.pathString
+				}
+			} catch (e: IOException) {
+				throw JGitInternalException(e.message, e)
+			}
+			return null
+		}
+
 	}
 }

@@ -1,4 +1,9 @@
-package org.dstadler.jgit.unfinished;
+package org.dstadler.jgit.unfinished
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.dircache.DirCache
+import org.eclipse.jgit.dircache.DirCacheEntry
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,40 +19,32 @@ package org.dstadler.jgit.unfinished;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.dircache.DirCache;
-import org.eclipse.jgit.dircache.DirCacheEntry;
-import org.eclipse.jgit.lib.Repository;
-
-/**
+ */ /**
  * Snippet which shows how to work with the Index
  *
  * @author dominik.stadler at gmx.at
  */
-public class ListIndex {
+object ListIndex {
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			// DirCache contains all files of the repository
+			val index = DirCache.read(repository)
+			println("DirCache has " + index.entryCount + " items")
+			for (i in 0 until index.entryCount) {
+				// the number after the AnyObjectId is the "stage", see the constants in DirCacheEntry
+				println("Item " + i + ": " + index.getEntry(i))
+			}
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            // DirCache contains all files of the repository
-            DirCache index = DirCache.read(repository);
-            System.out.println("DirCache has " + index.getEntryCount() + " items");
-            for (int i = 0; i < index.getEntryCount(); i++) {
-                // the number after the AnyObjectId is the "stage", see the constants in DirCacheEntry
-                System.out.println("Item " + i + ": " + index.getEntry(i));
-            }
-
-            //
-            System.out.println("Now printing staged items...");
-            for (int i = 0; i < index.getEntryCount(); i++) {
-                DirCacheEntry entry = index.getEntry(i);
-                if (entry.getStage() != DirCacheEntry.STAGE_0) {
-                    System.out.println("Item " + i + ": " + entry);
-                }
-            }
-        }
-    }
+			//
+			println("Now printing staged items...")
+			for (i in 0 until index.entryCount) {
+				val entry = index.getEntry(i)
+				if (entry.stage != DirCacheEntry.STAGE_0) {
+					println("Item $i: $entry")
+				}
+			}
+		}
+	}
 }

@@ -1,4 +1,10 @@
-package org.dstadler.jgit.unfinished;
+package org.dstadler.jgit.unfinished
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.treewalk.TreeWalk
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,46 +20,31 @@ package org.dstadler.jgit.unfinished;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.ObjectLoader;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
-
-/**
+ */ /**
  * Simple snippet which shows how to use RevWalk to iterate over items in a file-tree
  *
  * @author dominik.stadler at gmx.at
  */
-public class BrowseTree {
-
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            ObjectId revId = repository.resolve(Constants.HEAD);
-            try (TreeWalk treeWalk = new TreeWalk(repository)) {
-                try (RevWalk revWalk = new RevWalk(repository)) {
-                    treeWalk.addTree(revWalk.parseTree(revId));
-
-                    while (treeWalk.next())
-                    {
-                        System.out.println("---------------------------");
-                        System.out.append("name: ").println(treeWalk.getNameString());
-                        System.out.append("path: ").println(treeWalk.getPathString());
-
-                        ObjectLoader loader = repository.open(treeWalk.getObjectId(0));
-
-                        System.out.append("directory: ").println(loader.getType()
-                                == Constants.OBJ_TREE);
-                        System.out.append("size: ").println(loader.getSize());
-                    }
-                }
-            }
-        }
-    }
+object BrowseTree {
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			val revId = repository.resolve(Constants.HEAD)
+			TreeWalk(repository).use { treeWalk ->
+				RevWalk(repository).use { revWalk ->
+					treeWalk.addTree(revWalk.parseTree(revId))
+					while (treeWalk.next()) {
+						println("---------------------------")
+						System.out.append("name: ").println(treeWalk.nameString)
+						System.out.append("path: ").println(treeWalk.pathString)
+						val loader = repository.open(treeWalk.getObjectId(0))
+						System.out.append("directory: ").println(loader.type
+								== Constants.OBJ_TREE)
+						System.out.append("size: ").println(loader.size)
+					}
+				}
+			}
+		}
+	}
 }

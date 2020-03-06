@@ -1,4 +1,11 @@
-package org.dstadler.jgit.unfinished;
+package org.dstadler.jgit.unfinished
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import org.eclipse.jgit.lib.Ref
+import org.eclipse.jgit.lib.Repository
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,60 +21,43 @@ package org.dstadler.jgit.unfinished;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.ReflogEntry;
-import org.eclipse.jgit.lib.Repository;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-
-
-
-/**
+ */ /**
  * Note: This snippet is not done and likely does not show anything useful yet
  *
  * @author dominik.stadler at gmx.at
  */
-public class ListRefLog {
+object ListRefLog {
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			Git(repository).use { git ->
+				val refs = git.branchList().call()
+				for (ref in refs) {
+					println("Branch: " + ref + " " + ref.name + " " + ref.objectId.name)
+					listReflog(repository, ref)
+				}
+				val call = git.tagList().call()
+				for (ref in call) {
+					println("Tag: " + ref + " " + ref.name + " " + ref.objectId.name)
+					listReflog(repository, ref)
+				}
+			}
+		}
+	}
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            try (Git git = new Git(repository)) {
-                List<Ref> refs = git.branchList().call();
-                for (Ref ref : refs) {
-                    System.out.println("Branch: " + ref + " " + ref.getName() + " " + ref.getObjectId().getName());
-
-                    listReflog(repository, ref);
-                }
-
-                List<Ref> call = git.tagList().call();
-                for (Ref ref : call) {
-                    System.out.println("Tag: " + ref + " " + ref.getName() + " " + ref.getObjectId().getName());
-
-                    listReflog(repository, ref);
-                }
-            }
-        }
-    }
-
-    private static void listReflog(Repository repository, Ref ref) throws GitAPIException {
-        /*
+	@Throws(GitAPIException::class)
+	private fun listReflog(repository: Repository, ref: Ref) {
+		/*
          * Ref head = repository.getRef(ref.getName());
          * RevWalk walk = new RevWalk(repository);
          * RevCommit commit = walk.parseCommit(head.getObjectId());
          */
-
-        try (Git git = new Git(repository)) {
-            Collection<ReflogEntry> call = git.reflog().setRef(ref.getName()).call();
-            for (ReflogEntry reflog : call) {
-                System.out.println("Reflog: " + reflog);
-            }
-        }
-    }
+		Git(repository).use { git ->
+			val call = git.reflog().setRef(ref.name).call()
+			for (reflog in call) {
+				println("Reflog: $reflog")
+			}
+		}
+	}
 }
