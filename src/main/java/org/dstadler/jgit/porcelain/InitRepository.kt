@@ -1,4 +1,11 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.apache.commons.io.FileUtils
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import java.io.File
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,54 +21,34 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.File;
-import java.io.IOException;
-
-import org.apache.commons.io.FileUtils;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to initialize a new repository
  *
  * @author dominik.stadler at gmx.at
  */
-public class InitRepository {
+object InitRepository {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        // run the init-call
-        File dir = File.createTempFile("gitinit", ".test");
-        if(!dir.delete()) {
-            throw new IOException("Could not delete file " + dir);
-        }
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		// run the init-call
+		var dir = File.createTempFile("gitinit", ".test")
+		if (!dir.delete()) {
+			throw IOException("Could not delete file $dir")
+		}
+		Git.init()
+				.setDirectory(dir)
+				.call().use { git -> println("Created a new repository at " + git.repository.directory) }
 
-        // The Git-object has a static method to initialize a new repository
-        try (Git git = Git.init()
-                .setDirectory(dir)
-                .call()) {
-            System.out.println("Created a new repository at " + git.getRepository().getDirectory());
-        }
+		// clean up here to not keep using more and more disk-space for these samples
+		FileUtils.deleteDirectory(dir)
+		dir = File.createTempFile("repoinit", ".test")
+		if (!dir.delete()) {
+			throw IOException("Could not delete file $dir")
+		}
+		FileRepositoryBuilder.create(File(dir.absolutePath, ".git")).use { repository -> println("Created a new repository at " + repository.directory) }
 
-        // clean up here to not keep using more and more disk-space for these samples
-        FileUtils.deleteDirectory(dir);
-
-        dir = File.createTempFile("repoinit", ".test");
-        if(!dir.delete()) {
-            throw new IOException("Could not delete file " + dir);
-        }
-
-        // you can also create a Repository-object directly from the
-        try (Repository repository = FileRepositoryBuilder.create(new File(dir.getAbsolutePath(), ".git"))) {
-            System.out.println("Created a new repository at " + repository.getDirectory());
-        }
-
-        // clean up here to not keep using more and more disk-space for these samples
-        FileUtils.deleteDirectory(dir);
-    }
+		// clean up here to not keep using more and more disk-space for these samples
+		FileUtils.deleteDirectory(dir)
+	}
 }

@@ -1,19 +1,16 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
 
-import org.apache.commons.io.FileUtils;
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import org.apache.commons.io.FileUtils
+import org.dstadler.jgit.helper.CookbookHelper.createNewRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import java.io.File
+import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 
 /**
  * Simple snippet which shows how to set a modified tracked file back to its state
@@ -22,63 +19,61 @@ import java.nio.file.StandardOpenOption;
  *
  * @author JordanMartinez
  */
-public class RevertChanges {
+object RevertChanges {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        final File localPath;
-        try (Repository repository = CookbookHelper.createNewRepository()) {
-            localPath = repository.getWorkTree();
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		val localPath = createNewRepository().use { repository ->
+			val path = repository.workTree
+			println("Listing local branches:")
+			Git(repository).use { git ->
+				// set up a file
+				val fileName = "temptFile.txt"
+				val tempFile = File(repository.directory.parentFile, fileName)
+				if (!tempFile.createNewFile()) {
+					throw IOException("Could not create temporary file $tempFile")
+				}
+				val tempFilePath = tempFile.toPath()
 
-            System.out.println("Listing local branches:");
-            try (Git git = new Git(repository)) {
-                // set up a file
-                String fileName = "temptFile.txt";
-                File tempFile = new File(repository.getDirectory().getParentFile(), fileName);
-                if(!tempFile.createNewFile()) {
-                    throw new IOException("Could not create temporary file " + tempFile);
-                }
-                Path tempFilePath = tempFile.toPath();
+				// write some initial text to it
+				val initialText = "Initial Text"
+				println("Writing text [$initialText] to file [$tempFile]")
+				Files.write(tempFilePath, initialText.toByteArray())
 
-                // write some initial text to it
-                String initialText = "Initial Text";
-                System.out.println("Writing text [" + initialText + "] to file [" + tempFile.toString() + "]");
-                Files.write(tempFilePath, initialText.getBytes());
+				// add the file and commit it
+				git.add().addFilepattern(fileName).call()
+				git.commit().setMessage("Added untracked file " + fileName + "to repo").call()
 
-                // add the file and commit it
-                git.add().addFilepattern(fileName).call();
-                git.commit().setMessage("Added untracked file " + fileName + "to repo").call();
+				// modify the file
+				Files.write(tempFilePath, "Some modifications".toByteArray(), StandardOpenOption.APPEND)
 
-                // modify the file
-                Files.write(tempFilePath, "Some modifications".getBytes(), StandardOpenOption.APPEND);
+				// assert that file's text does not equal initialText
+				check(initialText != getTextFromFilePath(tempFilePath)) {
+					"Modified file's text should not equal " +
+							"its original state after modification"
+				}
+				println("File now has text [" + getTextFromFilePath(tempFilePath) + "]")
 
-                // assert that file's text does not equal initialText
-                if (initialText.equals(getTextFromFilePath(tempFilePath))) {
-                    throw new IllegalStateException("Modified file's text should not equal " +
-                            "its original state after modification");
-                }
+				// revert the changes
+				git.checkout().addPath(fileName).call()
 
-                System.out.println("File now has text [" + getTextFromFilePath(tempFilePath) + "]");
+				// text should no longer have modifications
+				check(initialText == getTextFromFilePath(tempFilePath)) { "Reverted file's text should equal its initial text" }
+				println("File modifications were reverted. " +
+						"File now has text [" + getTextFromFilePath(tempFilePath) + "]")
+			}
+			path
+		}
 
-                // revert the changes
-                git.checkout().addPath(fileName).call();
+		// clean up here to not keep using more and more disk-space for these samples
+		FileUtils.deleteDirectory(localPath)
+	}
 
-                // text should no longer have modifications
-                if (!initialText.equals(getTextFromFilePath(tempFilePath))) {
-                    throw new IllegalStateException("Reverted file's text should equal its initial text");
-                }
-
-                System.out.println("File modifications were reverted. " +
-                        "File now has text [" + getTextFromFilePath(tempFilePath) + "]");
-            }
-        }
-
-        // clean up here to not keep using more and more disk-space for these samples
-        FileUtils.deleteDirectory(localPath);
-    }
-
-    private static String getTextFromFilePath(Path file) throws IOException {
-        byte[] bytes = Files.readAllBytes(file);
-        CharBuffer chars = Charset.defaultCharset().decode(ByteBuffer.wrap(bytes));
-        return chars.toString();
-    }
+	@Throws(IOException::class)
+	private fun getTextFromFilePath(file: Path): String {
+		val bytes = Files.readAllBytes(file)
+		val chars = Charset.defaultCharset().decode(ByteBuffer.wrap(bytes))
+		return chars.toString()
+	}
 }

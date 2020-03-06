@@ -1,4 +1,9 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,40 +19,29 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-import java.util.List;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.ObjectLoader;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.notes.Note;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to load Notes in a Git repository
  *
  * @author dominik.stadler at gmx.at
  */
-public class ListNotes {
+object ListNotes {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            try (Git git = new Git(repository)) {
-                List<Note> call = git.notesList().call();
-                System.out.println("Listing " + call.size() + " notes");
-                for (Note note : call) {
-                    System.out.println("Note: " + note + " " + note.getName() + " " + note.getData().getName() + "\nContent: ");
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			Git(repository).use { git ->
+				val call = git.notesList().call()
+				println("Listing " + call.size + " notes")
+				for (note in call) {
+					println("""Note: $note ${note.name} ${note.data.name}
+Content: """)
 
-                    // displaying the contents of the note is done via a simple blob-read
-                    ObjectLoader loader = repository.open(note.getData());
-                    loader.copyTo(System.out);
-                }
-            }
-        }
-    }
+					// displaying the contents of the note is done via a simple blob-read
+					val loader = repository.open(note.data)
+					loader.copyTo(System.out)
+				}
+			}
+		}
+	}
 }

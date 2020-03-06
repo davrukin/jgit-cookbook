@@ -1,4 +1,10 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import org.eclipse.jgit.lib.ProgressMonitor
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,64 +20,45 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-import java.util.Map;
-import java.util.Properties;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.ProgressMonitor;
-import org.eclipse.jgit.lib.Repository;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to execute the "gc" command to remove unused
  * objects from the .git directory.
  *
  * @author dominik.stadler at gmx.at
  */
-public class CollectGarbage {
+object CollectGarbage {
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			Git(repository).use { git ->
+				val ret = git.gc().setProgressMonitor(PrintlnProgressMonitor()).call()
+				for ((key, value) in ret) {
+					println("Ret: $key: $value")
+				}
+			}
+		}
+	}
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            try (Git git = new Git(repository)) {
-                Properties ret = git.gc().
-                        setProgressMonitor(new PrintlnProgressMonitor()).call();
-                for(Map.Entry<Object, Object> entry : ret.entrySet()) {
-                    System.out.println("Ret: " + entry.getKey() + ": " + entry.getValue());
-                }
-            }
-        }
-    }
+	private class PrintlnProgressMonitor : ProgressMonitor {
+		override fun start(totalTasks: Int) {
+			println("Starting work on $totalTasks tasks")
+		}
 
-    private static class PrintlnProgressMonitor implements ProgressMonitor {
-        @Override
-        public void start(int totalTasks) {
-            System.out.println("Starting work on " + totalTasks + " tasks");
-        }
+		override fun beginTask(title: String, totalWork: Int) {
+			println("Start $title: $totalWork")
+		}
 
-        @Override
-        public void beginTask(String title, int totalWork) {
-            System.out.println("Start " + title + ": " + totalWork);
-        }
+		override fun update(completed: Int) {
+			print(completed)
+		}
 
-        @Override
-        public void update(int completed) {
-            System.out.print(completed);
-        }
+		override fun endTask() {
+			println("Done")
+		}
 
-        @Override
-        public void endTask() {
-            System.out.println("Done");
-        }
-
-        @Override
-        public boolean isCancelled() {
-            return false;
-        }
-    }
+		override fun isCancelled(): Boolean {
+			return false
+		}
+	}
 }

@@ -1,4 +1,9 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,37 +19,28 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-
-import java.io.IOException;
-
-/**
+ */ /**
  * Simple snippet which shows how to use RevWalk to quickly iterate over all available commits,
  * not just the ones on the current branch
  */
-public class WalkAllCommits {
+object WalkAllCommits {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            try (Git git = new Git(repository)) {
-                // use the following instead to list commits on a specific branch
-                //ObjectId branchId = repository.resolve("HEAD");
-                //Iterable<RevCommit> commits = git.log().add(branchId).call();
-
-                Iterable<RevCommit> commits = git.log().all().call();
-                int count = 0;
-                for (RevCommit commit : commits) {
-                    System.out.println("LogCommit: " + commit);
-                    count++;
-                }
-                System.out.println(count);
-            }
-        }
-    }
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			Git(repository).use { git ->
+				// use the following instead to list commits on a specific branch
+				//ObjectId branchId = repository.resolve("HEAD");
+				//Iterable<RevCommit> commits = git.log().add(branchId).call();
+				val commits = git.log().all().call()
+				var count = 0
+				for (commit in commits) {
+					println("LogCommit: $commit")
+					count++
+				}
+				println(count)
+			}
+		}
+	}
 }

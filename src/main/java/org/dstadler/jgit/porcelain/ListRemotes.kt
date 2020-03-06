@@ -1,4 +1,9 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,45 +19,35 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-import java.util.Collection;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
-
-/**
+ */ /**
  * Snippet which shows how to iterate remotes, i.e. "git ls-remote"
  *
  * @author dominik.stadler at gmx.at
  */
-public class ListRemotes {
+object ListRemotes {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            // all refs
-            try (Git git = new Git(repository)) {
-                Collection<Ref> refs = git.lsRemote().call();
-                for (Ref ref : refs) {
-                    System.out.println("Ref: " + ref);
-                }
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			Git(repository).use { git ->
+				var refs = git.lsRemote().call()
+				for (ref in refs) {
+					println("Ref: $ref")
+				}
 
-                // heads only
-                refs = git.lsRemote().setHeads(true).call();
-                for (Ref ref : refs) {
-                    System.out.println("Head: " + ref);
-                }
+				// heads only
+				refs = git.lsRemote().setHeads(true).call()
+				for (ref in refs) {
+					println("Head: $ref")
+				}
 
-                // tags only
-                refs = git.lsRemote().setTags(true).call();
-                for (Ref ref : refs) {
-                    System.out.println("Remote tag: " + ref);
-                }
-            }
-        }
-    }
+				// tags only
+				refs = git.lsRemote().setTags(true).call()
+				for (ref in refs) {
+					println("Remote tag: $ref")
+				}
+			}
+		}
+	}
 }

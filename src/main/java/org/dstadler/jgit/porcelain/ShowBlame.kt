@@ -1,4 +1,18 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.apache.commons.io.IOUtils
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.BlameCommand
+import org.eclipse.jgit.api.errors.GitAPIException
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.treewalk.TreeWalk
+import org.eclipse.jgit.treewalk.filter.PathFilter
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.FileInputStream
+import java.io.IOException
 
 /*
     Copyright 2013, 2014, 2017 Dominik Stadler
@@ -14,30 +28,7 @@ package org.dstadler.jgit.porcelain;
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-*/
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-
-import org.apache.commons.io.IOUtils;
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.BlameCommand;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.blame.BlameResult;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.ObjectLoader;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
-import org.eclipse.jgit.treewalk.filter.PathFilter;
-
-
-
-/**
+*/ /**
  * Simple snippet which shows how to get a diff showing who
  * changed which line in a file.
  *
@@ -49,59 +40,51 @@ import org.eclipse.jgit.treewalk.filter.PathFilter;
  *
  * @author dominik.stadler at gmx.at
  */
-public class ShowBlame {
+object ShowBlame {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        // prepare a new test-repository
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            BlameCommand blamer = new BlameCommand(repository);
-            ObjectId commitID = repository.resolve("HEAD~~");
-            blamer.setStartCommit(commitID);
-            blamer.setFilePath("README.md");
-            BlameResult blame = blamer.call();
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		// prepare a new test-repository
+		openJGitCookbookRepository().use { repository ->
+			val blamer = BlameCommand(repository)
+			val commitID = repository.resolve("HEAD~~")
+			blamer.setStartCommit(commitID)
+			blamer.setFilePath("README.md")
+			val blame = blamer.call()
 
-            // read the number of lines from the given revision, this excludes changes from the last two commits due to the "~~" above
-            int lines = countLinesOfFileInCommit(repository, commitID, "README.md");
-            for (int i = 0; i < lines; i++) {
-                RevCommit commit = blame.getSourceCommit(i);
-                System.out.println("Line: " + i + ": " + commit);
-            }
+			// read the number of lines from the given revision, this excludes changes from the last two commits due to the "~~" above
+			val lines = countLinesOfFileInCommit(repository, commitID, "README.md")
+			for (i in 0 until lines) {
+				val commit = blame.getSourceCommit(i)
+				println("Line: $i: $commit")
+			}
+			var currentLines: Int = 0
+			FileInputStream("README.md").use { input -> currentLines = IOUtils.readLines(input, "UTF-8").size }
+			println("Displayed commits responsible for $lines lines of README.md, current version has $currentLines lines")
+		}
+	}
 
-            final int currentLines;
-            try (final FileInputStream input = new FileInputStream("README.md")) {
-                currentLines = IOUtils.readLines(input, "UTF-8").size();
-            }
+	@Throws(IOException::class)
+	private fun countLinesOfFileInCommit(repository: Repository, commitID: ObjectId, name: String): Int {
+		RevWalk(repository).use { revWalk ->
+			val commit = revWalk.parseCommit(commitID)
+			val tree = commit.tree
+			println("Having tree: $tree")
+			TreeWalk(repository).use { treeWalk ->
+				treeWalk.addTree(tree)
+				treeWalk.isRecursive = true
+				treeWalk.filter = PathFilter.create(name)
+				check(treeWalk.next()) { "Did not find expected file 'README.md'" }
+				val objectId = treeWalk.getObjectId(0)
+				val loader = repository.open(objectId)
 
-            System.out.println("Displayed commits responsible for " + lines + " lines of README.md, current version has " + currentLines + " lines");
-        }
-    }
-
-    private static int countLinesOfFileInCommit(Repository repository, ObjectId commitID, String name) throws IOException {
-        try (RevWalk revWalk = new RevWalk(repository)) {
-            RevCommit commit = revWalk.parseCommit(commitID);
-            RevTree tree = commit.getTree();
-            System.out.println("Having tree: " + tree);
-
-            // now try to find a specific file
-            try (TreeWalk treeWalk = new TreeWalk(repository)) {
-                treeWalk.addTree(tree);
-                treeWalk.setRecursive(true);
-                treeWalk.setFilter(PathFilter.create(name));
-                if (!treeWalk.next()) {
-                    throw new IllegalStateException("Did not find expected file 'README.md'");
-                }
-
-                ObjectId objectId = treeWalk.getObjectId(0);
-                ObjectLoader loader = repository.open(objectId);
-
-                // load the content of the file into a stream
-                ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                loader.copyTo(stream);
-
-                revWalk.dispose();
-
-                return IOUtils.readLines(new ByteArrayInputStream(stream.toByteArray()), "UTF-8").size();
-            }
-        }
-    }
+				// load the content of the file into a stream
+				val stream = ByteArrayOutputStream()
+				loader.copyTo(stream)
+				revWalk.dispose()
+				return IOUtils.readLines(ByteArrayInputStream(stream.toByteArray()), "UTF-8").size
+			}
+		}
+	}
 }

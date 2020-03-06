@@ -1,6 +1,11 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
 
-import java.io.File;
+import org.apache.commons.io.FileUtils
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.ListBranchCommand.ListMode
+import org.eclipse.jgit.api.errors.GitAPIException
+import java.io.File
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -16,64 +21,49 @@ import java.io.File;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-import java.util.List;
-
-import org.apache.commons.io.FileUtils;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand.ListMode;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.transport.FetchResult;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to fetch commits from a remote Git repository
  *
  * @author dominik.stadler at gmx.at
  */
-public class FetchRemoteCommitsWithPrune {
+object FetchRemoteCommitsWithPrune {
+	private const val REMOTE_URL = "https://github.com/github/testrepo.git"
 
-    private static final String REMOTE_URL = "https://github.com/github/testrepo.git";
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		// prepare a new folder for the cloned repository
+		val localPath = File.createTempFile("TestGitRepository", "")
+		if (!localPath.delete()) {
+			throw IOException("Could not delete temporary file $localPath")
+		}
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        // prepare a new folder for the cloned repository
-        File localPath = File.createTempFile("TestGitRepository", "");
-        if(!localPath.delete()) {
-            throw new IOException("Could not delete temporary file " + localPath);
-        }
+		// then clone
+		println("Cloning from $REMOTE_URL to $localPath")
+		Git.cloneRepository()
+				.setURI(REMOTE_URL)
+				.setDirectory(localPath)
+				.call().use { git ->
+					// Note: the call() returns an opened repository already which needs to be closed to avoid file handle leaks!
+					println("Having repository: " + git.repository.directory)
+					println("Starting fetch")
+					val result = git.fetch().setCheckFetchedObjects(true).call()
+					println("Messages: " + result.messages)
 
-        // then clone
-        System.out.println("Cloning from " + REMOTE_URL + " to " + localPath);
-        try (Git git = Git.cloneRepository()
-                .setURI(REMOTE_URL)
-                .setDirectory(localPath)
-                .call()) {
-            // Note: the call() returns an opened repository already which needs to be closed to avoid file handle leaks!
-            System.out.println("Having repository: " + git.getRepository().getDirectory());
+					// ensure master/HEAD are still there
+					println("Listing local branches:")
+					var call = git.branchList().call()
+					for (ref in call) {
+						println("Branch: " + ref + " " + ref.name + " " + ref.objectId.name)
+					}
+					println("Now including remote branches:")
+					call = git.branchList().setListMode(ListMode.ALL).call()
+					for (ref in call) {
+						println("Branch: " + ref + " " + ref.name + " " + ref.objectId.name)
+					}
+				}
 
-            System.out.println("Starting fetch");
-            FetchResult result = git.fetch().setCheckFetchedObjects(true).call();
-            System.out.println("Messages: " + result.getMessages());
-
-            // ensure master/HEAD are still there
-            System.out.println("Listing local branches:");
-            List<Ref> call = git.branchList().call();
-            for (Ref ref : call) {
-                System.out.println("Branch: " + ref + " " + ref.getName() + " " + ref.getObjectId().getName());
-            }
-
-            System.out.println("Now including remote branches:");
-            call = git.branchList().setListMode(ListMode.ALL).call();
-            for (Ref ref : call) {
-                System.out.println("Branch: " + ref + " " + ref.getName() + " " + ref.getObjectId().getName());
-            }
-        }
-
-        // clean up here to not keep using more and more disk-space for these samples
-        FileUtils.deleteDirectory(localPath);
-    }
+		// clean up here to not keep using more and more disk-space for these samples
+		FileUtils.deleteDirectory(localPath)
+	}
 }

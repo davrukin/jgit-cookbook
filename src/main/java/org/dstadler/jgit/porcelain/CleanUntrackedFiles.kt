@@ -1,4 +1,11 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.apache.commons.io.FileUtils
+import org.dstadler.jgit.helper.CookbookHelper.createNewRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import java.io.File
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,57 +21,41 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Set;
-
-import org.apache.commons.io.FileUtils;
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to list all Tags
  *
  * @author dominik.stadler at gmx.at
  */
-public class CleanUntrackedFiles {
+object CleanUntrackedFiles {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        final File localPath;
-        try (Repository repository = CookbookHelper.createNewRepository()) {
-            localPath = repository.getWorkTree();
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		val localPath = createNewRepository().use { repository ->
+			val path = repository.workTree
+			println("Repository at " + repository.workTree)
+			val untrackedFile = File.createTempFile("untracked", ".txt", repository.workTree)
+			val untrackedDir = File.createTempFile("untrackedDir", "", repository.workTree)
+			if (!untrackedDir.delete()) {
+				throw IOException("Could not delete file $untrackedDir")
+			}
+			if (!untrackedDir.mkdirs()) {
+				throw IOException("Could not create directory $untrackedDir")
+			}
+			println("Untracked exists: " + untrackedFile.exists() + " Dir: " + untrackedDir.exists() + "/" + untrackedDir.isDirectory)
+			Git(repository).use { git ->
+				val removed = git.clean().setCleanDirectories(true).call()
+				for (item in removed) {
+					println("Removed: $item")
+				}
+				println("Removed " + removed.size + " items")
+			}
+			println("Untracked after: " + untrackedFile.exists() + " Dir: " + untrackedDir.exists() + "/" + untrackedDir.isDirectory)
 
-            System.out.println("Repository at " + repository.getWorkTree());
+			path
+		}
 
-            File untrackedFile = File.createTempFile("untracked", ".txt", repository.getWorkTree());
-            File untrackedDir = File.createTempFile("untrackedDir", "", repository.getWorkTree());
-            if(!untrackedDir.delete()) {
-                throw new IOException("Could not delete file " + untrackedDir);
-            }
-            if(!untrackedDir.mkdirs()) {
-                throw new IOException("Could not create directory " + untrackedDir);
-            }
-
-            System.out.println("Untracked exists: " + untrackedFile.exists() + " Dir: " + untrackedDir.exists() + "/" + untrackedDir.isDirectory());
-
-            try (Git git = new Git(repository)) {
-                Set<String> removed = git.clean().setCleanDirectories(true).call();
-                for(String item : removed) {
-                	System.out.println("Removed: " + item);
-                }
-                System.out.println("Removed " + removed.size() + " items");
-            }
-
-            System.out.println("Untracked after: " + untrackedFile.exists() + " Dir: " + untrackedDir.exists() + "/" + untrackedDir.isDirectory());
-        }
-
-        // clean up here to not keep using more and more disk-space for these samples
-        FileUtils.deleteDirectory(localPath);
-    }
+		// clean up here to not keep using more and more disk-space for these samples
+		FileUtils.deleteDirectory(localPath)
+	}
 }

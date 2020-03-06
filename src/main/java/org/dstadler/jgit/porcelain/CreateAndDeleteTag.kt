@@ -1,4 +1,10 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import org.eclipse.jgit.revwalk.RevWalk
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,62 +20,48 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to create a tag
  *
  * @author dominik.stadler at gmx.at
  */
-public class CreateAndDeleteTag {
+object CreateAndDeleteTag {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        // prepare test-repository
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            try (Git git = new Git(repository)) {
-                // remove the tag before creating it
-                git.tagDelete().setTags("tag_for_testing").call();
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		// prepare test-repository
+		openJGitCookbookRepository().use { repository ->
+			Git(repository).use { git ->
+				// remove the tag before creating it
+				git.tagDelete().setTags("tag_for_testing").call()
 
-                // set it on the current HEAD
-                Ref tag = git.tag().setName("tag_for_testing").call();
-                System.out.println("Created/moved tag " + tag + " to repository at " + repository.getDirectory());
+				// set it on the current HEAD
+				var tag = git.tag().setName("tag_for_testing").call()
+				println("Created/moved tag " + tag + " to repository at " + repository.directory)
 
-                // remove the tag again
-                git.tagDelete().setTags("tag_for_testing").call();
+				// remove the tag again
+				git.tagDelete().setTags("tag_for_testing").call()
 
-                // read some other commit and set the tag on it
-                ObjectId id = repository.resolve("HEAD^");
-                try (RevWalk walk = new RevWalk(repository)) {
-                    RevCommit commit = walk.parseCommit(id);
-                    tag = git.tag().setObjectId(commit).setName("tag_for_testing").call();
-                    System.out.println("Created/moved tag " + tag + " to repository at " + repository.getDirectory());
+				// read some other commit and set the tag on it
+				val id = repository.resolve("HEAD^")
+				RevWalk(repository).use { walk ->
+					val commit = walk.parseCommit(id)
+					tag = git.tag().setObjectId(commit).setName("tag_for_testing").call()
+					println("Created/moved tag " + tag + " to repository at " + repository.directory)
 
-                    // remove the tag again
-                    git.tagDelete().setTags("tag_for_testing").call();
+					// remove the tag again
+					git.tagDelete().setTags("tag_for_testing").call()
 
-                    // create an annotated tag
-                    tag = git.tag().setName("tag_for_testing").setAnnotated(true).call();
-                    System.out.println("Created/moved tag " + tag + " to repository at " + repository.getDirectory());
+					// create an annotated tag
+					tag = git.tag().setName("tag_for_testing").setAnnotated(true).call()
+					println("Created/moved tag " + tag + " to repository at " + repository.directory)
 
-                    // remove the tag again
-                    git.tagDelete().setTags("tag_for_testing").call();
-
-                    walk.dispose();
-                }
-            }
-        }
-    }
+					// remove the tag again
+					git.tagDelete().setTags("tag_for_testing").call()
+					walk.dispose()
+				}
+			}
+		}
+	}
 }

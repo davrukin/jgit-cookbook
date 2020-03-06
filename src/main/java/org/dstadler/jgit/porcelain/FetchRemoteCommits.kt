@@ -1,4 +1,9 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,32 +19,22 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.transport.FetchResult;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to fetch commits from a remote Git repository
  *
  * @author dominik.stadler at gmx.at
  */
-public class FetchRemoteCommits {
+object FetchRemoteCommits {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            System.out.println("Starting fetch");
-            try (Git git = new Git(repository)) {
-                FetchResult result = git.fetch().setCheckFetchedObjects(true).call();
-                System.out.println("Messages: " + result.getMessages());
-            }
-        }
-    }
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			println("Starting fetch")
+			Git(repository).use { git ->
+				val result = git.fetch().setCheckFetchedObjects(true).call()
+				println("Messages: " + result.messages)
+			}
+		}
+	}
 }

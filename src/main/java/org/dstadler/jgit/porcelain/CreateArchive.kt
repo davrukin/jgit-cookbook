@@ -1,4 +1,14 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.apache.commons.io.FileUtils
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import org.eclipse.jgit.archive.ArchiveFormats
+import org.eclipse.jgit.lib.Repository
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 /*
  * Copyright 2013, 2014 Dominik Stadler
@@ -14,61 +24,47 @@ package org.dstadler.jgit.porcelain;
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-
-import org.apache.commons.io.FileUtils;
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.archive.ArchiveFormats;
-import org.eclipse.jgit.lib.Repository;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to package the contents of a branch into an archive file
  * using a format provided by the org.eclipse.jgit.archive jar.
  *
  * @author dominik.stadler at gmx.at
  */
-public class CreateArchive {
-    public static void main(String[] args) throws IOException, GitAPIException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            // make the included archive formats known
-            ArchiveFormats.registerAll();
-            try {
-                write(repository, ".zip", "zip");
-                write(repository, ".tar.gz", "tgz");
-                write(repository, ".tar.bz2", "tbz2");
-                write(repository, ".tar.xz", "txz");
-            } finally {
-                ArchiveFormats.unregisterAll();
-            }
-        }
-    }
+object CreateArchive {
 
-    private static void write(Repository repository, String suffix, String format) throws IOException, GitAPIException {
-        // this is the file that we write the archive to
-        File file = File.createTempFile("test", suffix);
-        try (OutputStream out = new FileOutputStream(file)) {
-            // finally call the ArchiveCommand to write out using the various supported formats
-            try (Git git = new Git(repository)) {
-                git.archive()
-                        .setTree(repository.resolve("master"))
-                        .setFormat(format)
-                        .setOutputStream(out)
-                        .call();
-            }
-        }
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			// make the included archive formats known
+			ArchiveFormats.registerAll()
+			try {
+				write(repository, ".zip", "zip")
+				write(repository, ".tar.gz", "tgz")
+				write(repository, ".tar.bz2", "tbz2")
+				write(repository, ".tar.xz", "txz")
+			} finally {
+				ArchiveFormats.unregisterAll()
+			}
+		}
+	}
 
-        System.out.println("Wrote " + file.length() + " bytes to " + file);
+	@Throws(IOException::class, GitAPIException::class)
+	private fun write(repository: Repository, suffix: String, format: String) {
+		// this is the file that we write the archive to
+		val file = File.createTempFile("test", suffix)
+		FileOutputStream(file).use { out ->
+			Git(repository).use { git ->
+				git.archive()
+						.setTree(repository.resolve("master"))
+						.setFormat(format)
+						.setOutputStream(out)
+						.call()
+			}
+		}
+		println("Wrote " + file.length() + " bytes to " + file)
 
-        // clean up here to not keep using more and more disk-space for these samples
-        FileUtils.forceDelete(file);
-    }
+		// clean up here to not keep using more and more disk-space for these samples
+		FileUtils.forceDelete(file)
+	}
 }

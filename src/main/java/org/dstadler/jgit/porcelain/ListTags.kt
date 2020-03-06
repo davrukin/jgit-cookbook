@@ -1,4 +1,9 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,51 +19,36 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-import java.util.List;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.LogCommand;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to list all Tags
  *
  * @author dominik.stadler at gmx.at
  */
-public class ListTags {
+object ListTags {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            try (Git git = new Git(repository)) {
-                List<Ref> call = git.tagList().call();
-                for (Ref ref : call) {
-                    System.out.println("Tag: " + ref + " " + ref.getName() + " " + ref.getObjectId().getName());
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			Git(repository).use { git ->
+				val call = git.tagList().call()
+				for (ref in call) {
+					println("Tag: " + ref + " " + ref.name + " " + ref.objectId.name)
 
-                    // fetch all commits for this tag
-                    LogCommand log = git.log();
-
-                    Ref peeledRef = repository.getRefDatabase().peel(ref);
-                    if(peeledRef.getPeeledObjectId() != null) {
-                    	log.add(peeledRef.getPeeledObjectId());
-                    } else {
-                    	log.add(ref.getObjectId());
-                    }
-
-        			Iterable<RevCommit> logs = log.call();
-        			for (RevCommit rev : logs) {
-        				System.out.println("Commit: " + rev /* + ", name: " + rev.getName() + ", id: " + rev.getId().getName() */);
-        			}
-                }
-            }
-        }
-    }
+					// fetch all commits for this tag
+					val log = git.log()
+					val peeledRef = repository.refDatabase.peel(ref)
+					if (peeledRef.peeledObjectId != null) {
+						log.add(peeledRef.peeledObjectId)
+					} else {
+						log.add(ref.objectId)
+					}
+					val logs = log.call()
+					for (rev in logs) {
+						println("Commit: $rev" /* + ", name: " + rev.getName() + ", id: " + rev.getId().getName() */)
+					}
+				}
+			}
+		}
+	}
 }

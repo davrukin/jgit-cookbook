@@ -1,4 +1,9 @@
-package org.dstadler.jgit.porcelain;
+package org.dstadler.jgit.porcelain
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,41 +19,31 @@ package org.dstadler.jgit.porcelain;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.Status;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-
-
-
-/**
+ */ /**
  * Simple snippet which prints the Status of a git repository, i.e. modified/added/
  * removed/ignored files, similar to "git status"
  *
  * @author dominik.stadler at gmx.at
  */
-public class ShowStatus {
+object ShowStatus {
 
-    public static void main(String[] args) throws IOException, GitAPIException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            try (Git git = new Git(repository)) {
-                Status status = git.status().call();
-                System.out.println("Added: " + status.getAdded());
-                System.out.println("Changed: " + status.getChanged());
-                System.out.println("Conflicting: " + status.getConflicting());
-                System.out.println("ConflictingStageState: " + status.getConflictingStageState());
-                System.out.println("IgnoredNotInIndex: " + status.getIgnoredNotInIndex());
-                System.out.println("Missing: " + status.getMissing());
-                System.out.println("Modified: " + status.getModified());
-                System.out.println("Removed: " + status.getRemoved());
-                System.out.println("Untracked: " + status.getUntracked());
-                System.out.println("UntrackedFolders: " + status.getUntrackedFolders());
-            }
-        }
-    }
+	@Throws(IOException::class, GitAPIException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			Git(repository).use { git ->
+				val status = git.status().call()
+				println("Added: " + status.added)
+				println("Changed: " + status.changed)
+				println("Conflicting: " + status.conflicting)
+				println("ConflictingStageState: " + status.conflictingStageState)
+				println("IgnoredNotInIndex: " + status.ignoredNotInIndex)
+				println("Missing: " + status.missing)
+				println("Modified: " + status.modified)
+				println("Removed: " + status.removed)
+				println("Untracked: " + status.untracked)
+				println("UntrackedFolders: " + status.untrackedFolders)
+			}
+		}
+	}
 }
