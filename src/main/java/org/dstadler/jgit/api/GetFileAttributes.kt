@@ -1,4 +1,14 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.lib.FileMode
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevTree
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.treewalk.TreeWalk
+import org.eclipse.jgit.treewalk.filter.PathFilter
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,102 +24,84 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.*;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
-import org.eclipse.jgit.treewalk.filter.PathFilter;
-
-import java.io.IOException;
-
-/**
+ */ /**
  * Snippet which shows how to use RevWalk and TreeWalk to read the file
  * attributes like execution-bit and type of file/directory/...
  *
  * @author dominik.stadler at gmx.at
  */
-public class GetFileAttributes {
+object GetFileAttributes {
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            // find the Tree for current HEAD
-            RevTree tree = getTree(repository);
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			// find the Tree for current HEAD
+			val tree = getTree(repository)
+			printFile(repository, tree)
+			printDirectory(repository, tree)
+		}
+	}
 
-            printFile(repository, tree);
+	@Throws(IOException::class)
+	private fun getTree(repository: Repository): RevTree {
+		val lastCommitId = repository.resolve(Constants.HEAD)
+		RevWalk(repository).use { revWalk ->
+			val commit = revWalk.parseCommit(lastCommitId)
+			println("Time of commit (seconds since epoch): " + commit.commitTime)
 
-            printDirectory(repository, tree);
+			// and using commit's tree find the path
+			val tree = commit.tree
+			println("Having tree: $tree")
+			return tree
+		}
+	}
 
-            // there is also FileMode.SYMLINK for symbolic links, but this is not handled here yet
-        }
-    }
+	@Throws(IOException::class)
+	private fun printFile(repository: Repository, tree: RevTree) {
+		// now try to find a specific file
+		TreeWalk(repository).use { treeWalk ->
+			treeWalk.addTree(tree)
+			treeWalk.isRecursive = false
+			treeWalk.filter = PathFilter.create("README.md")
+			check(treeWalk.next()) { "Did not find expected file 'README.md'" }
 
-    private static RevTree getTree(Repository repository) throws IOException {
-        ObjectId lastCommitId = repository.resolve(Constants.HEAD);
+			// FileMode specifies the type of file, FileMode.REGULAR_FILE for normal file, FileMode.EXECUTABLE_FILE for executable bit
+			// set
+			val fileMode = treeWalk.getFileMode(0)
+			val loader = repository.open(treeWalk.getObjectId(0))
+			println("README.md: " + getFileMode(fileMode) + ", type: " + fileMode.objectType + ", mode: " + fileMode +
+					" size: " + loader.size)
+		}
+	}
 
-        // a RevWalk allows to walk over commits based on some filtering
-        try (RevWalk revWalk = new RevWalk(repository)) {
-            RevCommit commit = revWalk.parseCommit(lastCommitId);
+	@Throws(IOException::class)
+	private fun printDirectory(repository: Repository, tree: RevTree) {
+		// look at directory, this has FileMode.TREE
+		TreeWalk(repository).use { treeWalk ->
+			treeWalk.addTree(tree)
+			treeWalk.isRecursive = false
+			treeWalk.filter = PathFilter.create("src")
+			check(treeWalk.next()) { "Did not find expected folder 'src'" }
 
-            System.out.println("Time of commit (seconds since epoch): " + commit.getCommitTime());
+			// FileMode now indicates that this is a directory, i.e. FileMode.TREE.equals(fileMode) holds true
+			val fileMode = treeWalk.getFileMode(0)
+			println("src: " + getFileMode(fileMode) + ", type: " + fileMode.objectType + ", mode: " + fileMode)
+		}
+	}
 
-            // and using commit's tree find the path
-            RevTree tree = commit.getTree();
-            System.out.println("Having tree: " + tree);
-            return tree;
-        }
-    }
-
-    private static void printFile(Repository repository, RevTree tree) throws IOException {
-        // now try to find a specific file
-        try (TreeWalk treeWalk = new TreeWalk(repository)) {
-            treeWalk.addTree(tree);
-            treeWalk.setRecursive(false);
-            treeWalk.setFilter(PathFilter.create("README.md"));
-            if (!treeWalk.next()) {
-                throw new IllegalStateException("Did not find expected file 'README.md'");
-            }
-
-            // FileMode specifies the type of file, FileMode.REGULAR_FILE for normal file, FileMode.EXECUTABLE_FILE for executable bit
-    // set
-            FileMode fileMode = treeWalk.getFileMode(0);
-            ObjectLoader loader = repository.open(treeWalk.getObjectId(0));
-            System.out.println("README.md: " + getFileMode(fileMode) + ", type: " + fileMode.getObjectType() + ", mode: " + fileMode +
-                    " size: " + loader.getSize());
-        }
-    }
-
-    private static void printDirectory(Repository repository, RevTree tree) throws IOException {
-        // look at directory, this has FileMode.TREE
-        try (TreeWalk treeWalk = new TreeWalk(repository)) {
-            treeWalk.addTree(tree);
-            treeWalk.setRecursive(false);
-            treeWalk.setFilter(PathFilter.create("src"));
-            if (!treeWalk.next()) {
-                throw new IllegalStateException("Did not find expected folder 'src'");
-            }
-
-            // FileMode now indicates that this is a directory, i.e. FileMode.TREE.equals(fileMode) holds true
-            FileMode fileMode = treeWalk.getFileMode(0);
-            System.out.println("src: " + getFileMode(fileMode) + ", type: " + fileMode.getObjectType() + ", mode: " + fileMode);
-        }
-    }
-
-    private static String getFileMode(FileMode fileMode) {
-        if (fileMode.equals(FileMode.EXECUTABLE_FILE)) {
-            return "Executable File";
-        } else if (fileMode.equals(FileMode.REGULAR_FILE)) {
-            return "Normal File";
-        } else if (fileMode.equals(FileMode.TREE)) {
-            return "Directory";
-        } else if (fileMode.equals(FileMode.SYMLINK)) {
-            return "Symlink";
-        } else {
-            // there are a few others, see FileMode javadoc for details
-            throw new IllegalArgumentException("Unknown type of file encountered: " + fileMode);
-        }
-    }
+	private fun getFileMode(fileMode: FileMode): String {
+		return if (fileMode == FileMode.EXECUTABLE_FILE) {
+			"Executable File"
+		} else if (fileMode == FileMode.REGULAR_FILE) {
+			"Normal File"
+		} else if (fileMode == FileMode.TREE) {
+			"Directory"
+		} else if (fileMode == FileMode.SYMLINK) {
+			"Symlink"
+		} else {
+			// there are a few others, see FileMode javadoc for details
+			throw IllegalArgumentException("Unknown type of file encountered: $fileMode")
+		}
+	}
 }

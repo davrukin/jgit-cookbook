@@ -1,4 +1,7 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,23 +17,18 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
-
-import java.io.IOException;
-/**
+ */ /**
  * Simple snippet which shows how to retrieve a Ref for some reference string.
  */
-public class GetRefFromName {
+object GetRefFromName {
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            // the Ref holds an ObjectId for any type of object (tree, commit, blob, tree)
-            Ref head = repository.exactRef("refs/heads/master");
-            System.out.println("Ref of refs/heads/master: " + head + ": " + head.getName() + " - " + head.getObjectId().getName());
-        }
-    }
+	@JvmStatic
+	@Throws(IOException::class)
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			// the Ref holds an ObjectId for any type of object (tree, commit, blob, tree)
+			val head = repository.exactRef("refs/heads/master")
+			println("Ref of refs/heads/master: " + head + ": " + head.name + " - " + head.objectId.name)
+		}
+	}
 }

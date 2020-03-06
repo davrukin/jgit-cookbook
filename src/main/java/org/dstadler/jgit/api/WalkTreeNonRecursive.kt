@@ -1,4 +1,9 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.treewalk.TreeWalk
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,49 +19,34 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
-
-import java.io.IOException;
-
-/**
+ */ /**
  *
  * Simple snippet which shows how to use RevWalk to iterate over items in a file-tree
  *
- * See {@link WalkTreeNonRecursive} for a different usage of the {@link TreeWalk} class.
+ * See [WalkTreeNonRecursive] for a different usage of the [TreeWalk] class.
  *
  * @author dominik.stadler at gmx.at
  */
-public class WalkTreeNonRecursive {
+object WalkTreeNonRecursive {
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            Ref head = repository.findRef("HEAD");
-
-            // a RevWalk allows to walk over commits based on some filtering that is defined
-            try (RevWalk walk = new RevWalk(repository)) {
-                RevCommit commit = walk.parseCommit(head.getObjectId());
-                RevTree tree = commit.getTree();
-                System.out.println("Having tree: " + tree);
-
-                // now use a TreeWalk to iterate over all files in the Tree
-                // you can set Filters to narrow down the results if needed
-                try (TreeWalk treeWalk = new TreeWalk(repository)) {
-                    treeWalk.addTree(tree);
-                    // not walk the tree recursively so we only get the elements in the top-level directory
-                    treeWalk.setRecursive(false);
-                    while (treeWalk.next()) {
-                        System.out.println("found: " + treeWalk.getPathString());
-                    }
-                }
-            }
-        }
-    }
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			val head = repository.findRef("HEAD")
+			RevWalk(repository).use { walk ->
+				val commit = walk.parseCommit(head.objectId)
+				val tree = commit.tree
+				println("Having tree: $tree")
+				TreeWalk(repository).use { treeWalk ->
+					treeWalk.addTree(tree)
+					// not walk the tree recursively so we only get the elements in the top-level directory
+					treeWalk.isRecursive = false
+					while (treeWalk.next()) {
+						println("found: " + treeWalk.pathString)
+					}
+				}
+			}
+		}
+	}
 }

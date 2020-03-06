@@ -1,4 +1,16 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.lib.FileMode
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.revwalk.RevTree
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.treewalk.TreeWalk
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.util.*
 
 /*
    Copyright 2016 Dominik Stadler
@@ -14,95 +26,67 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.FileMode;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-/**
+ */ /**
  * Simple snippet which shows how to get a list of files/directories
  * based on a specific commit or a tag.
  */
-public class ListFilesOfCommitAndTag {
+object ListFilesOfCommitAndTag {
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			var paths = readElementsAt(repository, "6409ee1597a53c6fbee31edf9cde31dc3afbe20f", "src/main/java/org/dstadler/jgit/porcelain")
+			println("Had paths for commit: $paths")
+			val testbranch = repository.resolve("testbranch")
+			paths = readElementsAt(repository, testbranch.name, "src/main/java/org/dstadler/jgit/porcelain")
+			println("Had paths for tag: $paths")
+		}
+	}
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            List<String> paths = readElementsAt(repository, "6409ee1597a53c6fbee31edf9cde31dc3afbe20f", "src/main/java/org/dstadler/jgit/porcelain");
+	@Throws(IOException::class)
+	private fun readElementsAt(repository: Repository, commit: String, path: String): List<String?> {
+		val revCommit = buildRevCommit(repository, commit)
 
-            System.out.println("Had paths for commit: " + paths);
+		// and using commit's tree find the path
+		val tree = revCommit.tree
+		//System.out.println("Having tree: " + tree + " for commit " + commit);
+		val items: MutableList<String?> = ArrayList()
 
-            final ObjectId testbranch = repository.resolve("testbranch");
-            paths = readElementsAt(repository, testbranch.getName(), "src/main/java/org/dstadler/jgit/porcelain");
+		// shortcut for root-path
+		if (path.isEmpty()) {
+			TreeWalk(repository).use { treeWalk ->
+				treeWalk.addTree(tree)
+				treeWalk.isRecursive = false
+				treeWalk.isPostOrderTraversal = false
+				while (treeWalk.next()) {
+					items.add(treeWalk.pathString)
+				}
+			}
+		} else {
+			// now try to find a specific file
+			buildTreeWalk(repository, tree, path).use { treeWalk ->
+				check(treeWalk.getFileMode(0).bits and FileMode.TYPE_TREE != 0) { "Tried to read the elements of a non-tree for commit '" + commit + "' and path '" + path + "', had filemode " + treeWalk.getFileMode(0).bits }
+				TreeWalk(repository).use { dirWalk ->
+					dirWalk.addTree(treeWalk.getObjectId(0))
+					dirWalk.isRecursive = false
+					while (dirWalk.next()) {
+						items.add(dirWalk.pathString)
+					}
+				}
+			}
+		}
+		return items
+	}
 
-            System.out.println("Had paths for tag: " + paths);
-        }
-    }
+	@Throws(IOException::class)
+	private fun buildRevCommit(repository: Repository, commit: String): RevCommit {
+		// a RevWalk allows to walk over commits based on some filtering that is defined
+		RevWalk(repository).use { revWalk -> return revWalk.parseCommit(ObjectId.fromString(commit)) }
+	}
 
-    private static List<String> readElementsAt(Repository repository, String commit, String path) throws IOException {
-        RevCommit revCommit = buildRevCommit(repository, commit);
-
-        // and using commit's tree find the path
-        RevTree tree = revCommit.getTree();
-        //System.out.println("Having tree: " + tree + " for commit " + commit);
-
-        List<String> items = new ArrayList<>();
-
-        // shortcut for root-path
-        if(path.isEmpty()) {
-            try (TreeWalk treeWalk = new TreeWalk(repository)) {
-                treeWalk.addTree(tree);
-                treeWalk.setRecursive(false);
-                treeWalk.setPostOrderTraversal(false);
-
-                while(treeWalk.next()) {
-                    items.add(treeWalk.getPathString());
-                }
-            }
-        } else {
-            // now try to find a specific file
-            try (TreeWalk treeWalk = buildTreeWalk(repository, tree, path)) {
-                if((treeWalk.getFileMode(0).getBits() & FileMode.TYPE_TREE) == 0) {
-                    throw new IllegalStateException("Tried to read the elements of a non-tree for commit '" + commit + "' and path '" + path + "', had filemode " + treeWalk.getFileMode(0).getBits());
-                }
-
-                try (TreeWalk dirWalk = new TreeWalk(repository)) {
-                    dirWalk.addTree(treeWalk.getObjectId(0));
-                    dirWalk.setRecursive(false);
-                    while(dirWalk.next()) {
-                        items.add(dirWalk.getPathString());
-                    }
-                }
-            }
-        }
-
-        return items;
-    }
-
-    private static RevCommit buildRevCommit(Repository repository, String commit) throws IOException {
-        // a RevWalk allows to walk over commits based on some filtering that is defined
-        try (RevWalk revWalk = new RevWalk(repository)) {
-            return revWalk.parseCommit(ObjectId.fromString(commit));
-        }
-    }
-
-    private static TreeWalk buildTreeWalk(Repository repository, RevTree tree, final String path) throws IOException {
-        TreeWalk treeWalk = TreeWalk.forPath(repository, path, tree);
-
-        if(treeWalk == null) {
-            throw new FileNotFoundException("Did not find expected file '" + path + "' in tree '" + tree.getName() + "'");
-        }
-
-        return treeWalk;
-    }
+	@Throws(IOException::class)
+	private fun buildTreeWalk(repository: Repository, tree: RevTree, path: String): TreeWalk {
+		return TreeWalk.forPath(repository, path, tree)
+				?: throw FileNotFoundException("Did not find expected file '" + path + "' in tree '" + tree.name + "'")
+	}
 }

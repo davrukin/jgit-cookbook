@@ -1,4 +1,8 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.lib.Config
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,34 +18,27 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.Config;
-import org.eclipse.jgit.lib.Repository;
-
-/**
+ */ /**
  * Simple snippet which shows how to retrieve the user name and email that is configured in Git.
  */
-public class ReadUserConfig {
+object ReadUserConfig {
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            Config config = repository.getConfig();
-            String name = config.getString("user", null, "name");
-            String email = config.getString("user", null, "email");
-            if (name == null || email == null) {
-                System.out.println("User identity is unknown!");
-            } else {
-                System.out.println("User identity is " + name + " <" + email + ">");
-            }
-
-            String url = config.getString("remote", "origin", "url");
-            if (url != null) {
-                    System.out.println("Origin comes from " + url);
-            }
-        }
-    }
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			val config: Config = repository.config
+			val name = config.getString("user", null, "name")
+			val email = config.getString("user", null, "email")
+			if (name == null || email == null) {
+				println("User identity is unknown!")
+			} else {
+				println("User identity is $name <$email>")
+			}
+			val url = config.getString("remote", "origin", "url")
+			if (url != null) {
+				println("Origin comes from $url")
+			}
+		}
+	}
 }

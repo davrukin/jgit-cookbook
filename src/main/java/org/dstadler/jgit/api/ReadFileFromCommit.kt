@@ -1,4 +1,11 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.treewalk.TreeWalk
+import org.eclipse.jgit.treewalk.filter.PathFilter
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,59 +21,38 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.ObjectLoader;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
-import org.eclipse.jgit.treewalk.filter.PathFilter;
-
-/**
+ */ /**
  * Snippet which shows how to use RevWalk and TreeWalk to read the contents
  * of a specific file from a specific commit.
  *
  * @author dominik.stadler at gmx.at
  */
-public class ReadFileFromCommit {
+object ReadFileFromCommit {
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            // find the HEAD
-            ObjectId lastCommitId = repository.resolve(Constants.HEAD);
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			// find the HEAD
+			val lastCommitId = repository.resolve(Constants.HEAD)
+			RevWalk(repository).use { revWalk ->
+				val commit = revWalk.parseCommit(lastCommitId)
+				// and using commit's tree find the path
+				val tree = commit.tree
+				println("Having tree: $tree")
+				TreeWalk(repository).use { treeWalk ->
+					treeWalk.addTree(tree)
+					treeWalk.isRecursive = true
+					treeWalk.filter = PathFilter.create("README.md")
+					check(treeWalk.next()) { "Did not find expected file 'README.md'" }
+					val objectId = treeWalk.getObjectId(0)
+					val loader = repository.open(objectId)
 
-            // a RevWalk allows to walk over commits based on some filtering that is defined
-            try (RevWalk revWalk = new RevWalk(repository)) {
-                RevCommit commit = revWalk.parseCommit(lastCommitId);
-                // and using commit's tree find the path
-                RevTree tree = commit.getTree();
-                System.out.println("Having tree: " + tree);
-
-                // now try to find a specific file
-                try (TreeWalk treeWalk = new TreeWalk(repository)) {
-                    treeWalk.addTree(tree);
-                    treeWalk.setRecursive(true);
-                    treeWalk.setFilter(PathFilter.create("README.md"));
-                    if (!treeWalk.next()) {
-                        throw new IllegalStateException("Did not find expected file 'README.md'");
-                    }
-
-                    ObjectId objectId = treeWalk.getObjectId(0);
-                    ObjectLoader loader = repository.open(objectId);
-
-                    // and then one can the loader to read the file
-                    loader.copyTo(System.out);
-                }
-
-                revWalk.dispose();
-            }
-        }
-    }
+					// and then one can the loader to read the file
+					loader.copyTo(System.out)
+				}
+				revWalk.dispose()
+			}
+		}
+	}
 }

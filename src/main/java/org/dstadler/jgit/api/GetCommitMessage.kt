@@ -1,4 +1,8 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.revwalk.RevWalk
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,34 +18,25 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
-
-/**
+ */ /**
  * Simple snippet which shows how to retrieve the commit-message based on object id.
  */
-public class GetCommitMessage {
+object GetCommitMessage {
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            Ref head = repository.findRef("refs/heads/master");
-            System.out.println("Found head: " + head);
-
-            // a RevWalk allows to walk over commits based on some filtering that is defined
-            try (RevWalk walk = new RevWalk(repository)) {
-                RevCommit commit = walk.parseCommit(head.getObjectId());
-
-                System.out.println("\nCommit-Message: " + commit.getFullMessage());
-
-                walk.dispose();
-            }
-        }
-    }
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			val head = repository.findRef("refs/heads/master")
+			println("Found head: $head")
+			RevWalk(repository).use { walk ->
+				val commit = walk.parseCommit(head.objectId)
+				println("""
+	
+	Commit-Message: ${commit.fullMessage}
+	""".trimIndent())
+				walk.dispose()
+			}
+		}
+	}
 }

@@ -1,4 +1,8 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.lib.Config
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,29 +18,21 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-import java.util.Set;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.Config;
-import org.eclipse.jgit.lib.Repository;
-
-/**
+ */ /**
  * Simple snippet which shows how to retrieve the list of remotes from the configuration
  */
-public class PrintRemotes {
+object PrintRemotes {
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            Config storedConfig = repository.getConfig();
-            Set<String> remotes = storedConfig.getSubsections("remote");
-
-            for (String remoteName : remotes) {
-                String url = storedConfig.getString("remote", remoteName, "url");
-                System.out.println(remoteName + " " + url);
-            }
-        }
-    }
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			val storedConfig: Config = repository.config
+			val remotes = storedConfig.getSubsections("remote")
+			for (remoteName in remotes) {
+				val url = storedConfig.getString("remote", remoteName, "url")
+				println("$remoteName $url")
+			}
+		}
+	}
 }

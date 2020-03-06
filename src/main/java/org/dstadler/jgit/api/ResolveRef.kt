@@ -1,4 +1,7 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,36 +17,26 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import java.io.IOException;
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Repository;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to retrieve an ObjectId for some name.
  */
-public class ResolveRef {
+object ResolveRef {
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            // basic syntax is similar to getRef()
-            ObjectId id = repository.resolve("HEAD");
-            System.out.println("ObjectId of HEAD: " + id);
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			// basic syntax is similar to getRef()
+			var id = repository.resolve("HEAD")
+			println("ObjectId of HEAD: $id")
 
-            // however resolve() supports almost all of the git-syntax, where getRef() only works on names
-            id = repository.resolve("HEAD^1");
-            System.out.println("ObjectId of HEAD: " + id);
-
-            id = repository.resolve("b419522521af553ae2752fd1b609f2aa11062243");
-            System.out.println("ObjectId of specific commit: " + id);
-
-            id = repository.resolve("05d18a76875716fbdbd2c200091b40caa06c713d");
-            System.out.println("ObjectId of merged commit: " + id);
-        }
-    }
+			// however resolve() supports almost all of the git-syntax, where getRef() only works on names
+			id = repository.resolve("HEAD^1")
+			println("ObjectId of HEAD: $id")
+			id = repository.resolve("b419522521af553ae2752fd1b609f2aa11062243")
+			println("ObjectId of specific commit: $id")
+			id = repository.resolve("05d18a76875716fbdbd2c200091b40caa06c713d")
+			println("ObjectId of merged commit: $id")
+		}
+	}
 }

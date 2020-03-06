@@ -1,4 +1,8 @@
-package org.dstadler.jgit.api;
+package org.dstadler.jgit.api
+
+import org.dstadler.jgit.helper.CookbookHelper.openJGitCookbookRepository
+import org.eclipse.jgit.revwalk.RevWalk
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -14,43 +18,29 @@ package org.dstadler.jgit.api;
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
- */
-
-import org.dstadler.jgit.helper.CookbookHelper;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
-
-import java.io.IOException;
-
-
-
-/**
+ */ /**
  * Simple snippet which shows how to use RevWalk to iterate over objects
  */
-public class WalkRev {
+object WalkRev {
 
-    public static void main(String[] args) throws IOException {
-        try (Repository repository = CookbookHelper.openJGitCookbookRepository()) {
-            Ref head = repository.exactRef("refs/heads/master");
-
-            // a RevWalk allows to walk over commits based on some filtering that is defined
-            try (RevWalk walk = new RevWalk(repository)) {
-                RevCommit commit = walk.parseCommit(head.getObjectId());
-                System.out.println("Start-Commit: " + commit);
-
-                System.out.println("Walking all commits starting at HEAD");
-                walk.markStart(commit);
-                int count = 0;
-                for (RevCommit rev : walk) {
-                    System.out.println("Commit: " + rev);
-                    count++;
-                }
-                System.out.println(count);
-
-                walk.dispose();
-            }
-        }
-    }
+	@Throws(IOException::class)
+	@JvmStatic
+	fun main(args: Array<String>) {
+		openJGitCookbookRepository().use { repository ->
+			val head = repository.exactRef("refs/heads/master")
+			RevWalk(repository).use { walk ->
+				val commit = walk.parseCommit(head.objectId)
+				println("Start-Commit: $commit")
+				println("Walking all commits starting at HEAD")
+				walk.markStart(commit)
+				var count = 0
+				for (rev in walk) {
+					println("Commit: $rev")
+					count++
+				}
+				println(count)
+				walk.dispose()
+			}
+		}
+	}
 }
