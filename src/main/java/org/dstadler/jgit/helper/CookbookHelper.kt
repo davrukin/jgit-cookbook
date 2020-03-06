@@ -1,4 +1,9 @@
-package org.dstadler.jgit.helper;
+package org.dstadler.jgit.helper
+
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import java.io.File
+import java.io.IOException
 
 /*
    Copyright 2013, 2014 Dominik Stadler
@@ -15,35 +20,30 @@ package org.dstadler.jgit.helper;
    See the License for the specific language governing permissions and
    limitations under the License.
  */
+object CookbookHelper {
 
-import java.io.File;
-import java.io.IOException;
+	@JvmStatic
+    @Throws(IOException::class)
+	fun openJGitCookbookRepository(): Repository {
+		val builder = FileRepositoryBuilder()
+		return builder
+				.readEnvironment() // scan environment GIT_* variables
+				.findGitDir() // scan up the file system tree
+				.build()
+	}
 
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+	@JvmStatic
+    @Throws(IOException::class)
+	fun createNewRepository(): Repository {
+		// prepare a new folder
+		val localPath = File.createTempFile("TestGitRepository", "")
+		if (!localPath.delete()) {
+			throw IOException("Could not delete temporary file $localPath")
+		}
 
-
-public class CookbookHelper {
-
-    public static Repository openJGitCookbookRepository() throws IOException {
-        FileRepositoryBuilder builder = new FileRepositoryBuilder();
-        return builder
-                .readEnvironment() // scan environment GIT_* variables
-                .findGitDir() // scan up the file system tree
-                .build();
-    }
-
-    public static Repository createNewRepository() throws IOException {
-        // prepare a new folder
-        File localPath = File.createTempFile("TestGitRepository", "");
-        if(!localPath.delete()) {
-            throw new IOException("Could not delete temporary file " + localPath);
-        }
-
-        // create the directory
-        Repository repository = FileRepositoryBuilder.create(new File(localPath, ".git"));
-        repository.create();
-
-        return repository;
-    }
+		// create the directory
+		val repository = FileRepositoryBuilder.create(File(localPath, ".git"))
+		repository.create()
+		return repository
+	}
 }
