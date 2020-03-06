@@ -32,7 +32,7 @@ object OpenRepository {
 	@Throws(IOException::class, GitAPIException::class)
 	@JvmStatic
 	@JvmOverloads
-	fun main(args: Array<String>? = null) {
+	fun main(args: Array<String> = arrayOf()) {
 		// first create a test-repository, the return is including the .get directory here!
 		val repoDir = createSampleGitRepo()
 
